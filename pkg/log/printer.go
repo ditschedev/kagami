@@ -29,7 +29,7 @@ func Error(err error, contents string) {
 	Write(contents, color.FgRed)
 
 	if displayErrors {
-		fmt.Println(err)
+		fmt.Println(err.Error())
 	}
 
 }

@@ -15,6 +15,12 @@ import (
 	"time"
 )
 
+const (
+	mirrorStatusSuccess = iota
+	mirrorStatusNoChanges
+	mirrorStatusError
+)
+
 type Mirror interface {
 	Mirror()
 }
@@ -23,12 +29,14 @@ type mirror struct {
 	config  *config.MirrorConfig
 	spinner *spinner.Spinner
 	tmpDir  string
+	status  int
 }
 
 func New(cfg *config.MirrorConfig) Mirror {
 	return &mirror{
 		config:  cfg,
 		spinner: spinner.New(spinner.CharSets[40], 100*time.Millisecond),
+		status:  mirrorStatusError,
 	}
 }
 
@@ -39,10 +47,8 @@ func (m *mirror) Mirror() {
 	_ = m.spinner.Color("fgHiBlack")
 	color.Set(color.FgHiBlack)
 	m.spinner.Suffix = fmt.Sprintf(" Mirroring repository %s", m.config.Name)
-	m.spinner.FinalMSG = fmt.Sprintf("✓ Successfully mirrored %s\n", m.config.Name)
 	m.spinner.Start()
 
-	// check if already cloned
 	cachePath, err := os.MkdirTemp("", "kagami-mirrors")
 	localPath := path.Join(cachePath, m.config.Name)
 
@@ -82,43 +88,13 @@ func (m *mirror) Mirror() {
 		return
 	}
 
-	//// fetch
-	//err = repo.Fetch(&git.FetchOptions{
-	//	RemoteName: "origin",
-	//})
-	//if err != nil {
-	//
-	//	if !errors.Is(err, git.NoErrAlreadyUpToDate) {
-	//		log.Fatal("Could not fetch latest changes")
-	//		return
-	//	}
-	//
-	//	if !initialClone {
-	//		log.Write(fmt.Sprintf("No changes detected for %s", m.config.Name), color.FgHiGreen)
-	//		return
-	//	}
-	//}
-	//
-	//w, err := repo.Worktree()
-	//if err != nil {
-	//	fmt.Println(err)
-	//	log.Fatal("Could not get worktree")
-	//}
-	//
-	//// Pull the latest changes from the origin remote and merge into the current branch
-	//err = w.Pull(&git.PullOptions{RemoteName: "origin"})
-	//if err != nil && !errors.Is(err, git.NoErrAlreadyUpToDate) {
-	//	fmt.Println(err)
-	//	log.Fatal("Could not pull latest changes")
-	//}
-
 	// push
 	err = repo.Push(&git.PushOptions{
 		RemoteName: "mirror",
 	})
 	if err != nil {
 		if errors.Is(err, git.NoErrAlreadyUpToDate) {
-			//log.Write(fmt.Sprintf("✓ No changes detected for %s", m.config.Name), color.FgHiGreen)
+			m.status = mirrorStatusNoChanges
 			return
 		}
 
@@ -126,7 +102,7 @@ func (m *mirror) Mirror() {
 		return
 	}
 
-	//log.Write(fmt.Sprintf("✓ Successfully mirrored %s", m.config.Name), color.FgHiGreen)
+	m.status = mirrorStatusSuccess
 }
 
 func (m *mirror) cleanup() {
@@ -137,6 +113,11 @@ func (m *mirror) cleanup() {
 		}
 	}
 
+	if m.status == mirrorStatusError {
+		return
+	}
+
 	color.Set(color.FgGreen)
+	m.spinner.FinalMSG = fmt.Sprintf("✓ Successfully mirrored %s\n", m.config.Name)
 	m.spinner.Stop()
 }

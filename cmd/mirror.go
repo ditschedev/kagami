@@ -12,6 +12,7 @@ import (
 
 var (
 	configFilePathFlag string
+	verboseFlag        bool
 )
 
 var mirrorCmd = &cobra.Command{
@@ -20,7 +21,10 @@ var mirrorCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		initConfig()
 
-		//log.DisplayErrors(true)
+		if verboseFlag {
+			log.DisplayErrors(true)
+		}
+
 		start := time.Now()
 
 		log.Write("Starting mirror agent", color.FgHiBlack)
@@ -34,6 +38,7 @@ var mirrorCmd = &cobra.Command{
 
 func init() {
 	mirrorCmd.Flags().StringVarP(&configFilePathFlag, "config", "c", "./repositories.yaml", "file path to the configuration file")
+	mirrorCmd.Flags().BoolVarP(&verboseFlag, "verbose", "v", false, "show verbose output")
 
 	rootCmd.AddCommand(mirrorCmd)
 }
