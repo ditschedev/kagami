@@ -46,7 +46,7 @@ func (m *mirror) Mirror() {
 	color.Set(color.FgHiBlack)
 	_ = m.spinner.Color("fgHiBlack")
 	color.Set(color.FgHiBlack)
-	m.spinner.Suffix = fmt.Sprintf(" Mirroring repository %s", m.config.Name)
+	m.spinner.Suffix = fmt.Sprintf(" Mirroring repository %s\n", m.config.Name)
 	m.spinner.Start()
 
 	cachePath, err := os.MkdirTemp("", "kagami-mirrors")
